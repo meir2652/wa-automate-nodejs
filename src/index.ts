@@ -1,4 +1,4 @@
-import { create } from '@open-wa/wa-automate';
+import { create, ev } from '@open-wa/wa-automate';
 import axios from 'axios';
 import dotenv from 'dotenv';
 
@@ -36,22 +36,23 @@ create({
     console.log('Incoming call:', call);
   });
 
-  client.onStreamChange((state) => {
-    console.log('Stream state changed:', state);
-  });
-
   client.onLogout(() => {
     console.log('Client logged out');
   });
 
-  client.onQRUpdated((qrData) => {
-    console.log('QR updated');
-    axios.post(process.env.WEBHOOK_URL || '', {
-      type: 'qr',
-      qrcode: qrData,
-      timestamp: new Date().toISOString(),
-    }).then(() => {
+  ev.on('qr.**', async (qrData) => {
+    console.log('QR generated');
+    try {
+      await axios.post(process.env.WEBHOOK_URL || '', {
+        type: 'qr_code',
+        data: {
+          qrcode: qrData,
+          timestamp: new Date().toISOString(),
+        }
+      });
       console.log('QR sent to webhook');
-    }).catch(console.error);
+    } catch (error) {
+      console.error('Failed to send QR:', error.message);
+    }
   });
 }).catch(console.error);
