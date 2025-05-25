@@ -30,7 +30,7 @@ create({
 }).then(async client => {
   console.log('✅ WhatsApp client created successfully');
 
-  // QR EVENT - send to webhook
+  // QR EVENT - שליחה ל־Webhook
   create.ev.on('qr.**', async qr => {
     console.log('📤 QR received, sending to webhook...');
     try {
@@ -47,7 +47,7 @@ create({
     }
   });
 
-  // STATE CHANGE
+  // שינויי סטטוס חיבור
   client.onStateChanged(async state => {
     console.log('ℹ️ State changed:', state);
     try {
@@ -62,4 +62,5 @@ create({
       console.error('❌ Failed to send status to webhook:', err.message);
     }
   });
+
 });
