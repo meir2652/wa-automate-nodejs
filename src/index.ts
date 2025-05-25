@@ -1,6 +1,15 @@
-const { create } = require('@open-wa/wa-automate');
-const axios = require('axios');
-require('dotenv').config();
+import { create, ev } from '@open-wa/wa-automate';
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+
+if (!WEBHOOK_URL) {
+  console.error('❌ Missing WEBHOOK_URL in environment variables');
+  process.exit(1);
+}
 
 create({
   sessionId: 'session',
@@ -24,43 +33,48 @@ create({
       '--no-first-run',
       '--no-zygote',
       '--single-process',
-      '--disable-web-security'
-    ]
-  }
-}).then(async client => {
+      '--disable-web-security',
+    ],
+  },
+}).then(async (client) => {
   console.log('✅ WhatsApp client created successfully');
 
-  // QR EVENT - שליחה ל־Webhook
-  create.ev.on('qr.**', async qr => {
-    console.log('📤 QR received, sending to webhook...');
+  // QR EVENT - send to webhook
+  ev.on('qr.**', async (qr) => {
+    console.log('📤 QR code generated. Sending to webhook...');
     try {
-      await axios.post(process.env.WEBHOOK_URL, {
+      await axios.post(WEBHOOK_URL, {
         type: 'qr_code',
         data: {
           qrcode: qr,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
       console.log('✅ QR code sent to webhook');
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Failed to send QR code to webhook:', err.message);
     }
   });
 
-  // שינויי סטטוס חיבור
-  client.onStateChanged(async state => {
+  // STATE CHANGE EVENT
+  client.onStateChanged(async (state) => {
     console.log('ℹ️ State changed:', state);
     try {
-      await axios.post(process.env.WEBHOOK_URL, {
+      await axios.post(WEBHOOK_URL, {
         type: 'connection_status',
         data: {
           status: state,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Failed to send status to webhook:', err.message);
     }
   });
-
+}).catch((err) => {
+  console.error('❌ Error during WhatsApp client creation:', err.message);
+  process.exit(1);
 });
+
+// הכרחי כדי למנוע שגיאת "is not a module"
+export {};
